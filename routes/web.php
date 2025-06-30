@@ -12,20 +12,11 @@ use App\Http\Controllers\ReservaController;
 use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\FavoritoController;
 use App\Http\Controllers\CompraController;
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-// Rutas de idioma y tema
 Route::get('/language/{locale}', function ($locale) {
     if (in_array($locale, ['es', 'en'])) {
         session(['locale' => $locale]);
         app()->setLocale($locale);
         
-        // Si el usuario está autenticado, actualizar su preferencia
         if (auth()->check()) {
             auth()->user()->update(['idioma_preferencia' => $locale]);
         }
@@ -37,7 +28,6 @@ Route::get('/theme/{theme}', function ($theme) {
     if (in_array($theme, ['claro', 'oscuro'])) {
         session(['theme' => $theme]);
         
-        // Si el usuario está autenticado, actualizar su preferencia
         if (auth()->check()) {
             auth()->user()->update(['tema_preferencia' => $theme]);
         }
@@ -45,10 +35,8 @@ Route::get('/theme/{theme}', function ($theme) {
     return redirect()->back()->with('success', 'Tema cambiado exitosamente');
 })->name('theme.switch');
 
-// Ruta principal
 Route::get('/', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-// Rutas de autenticación
 Route::get('/login/user', [AuthController::class, 'showUserLogin'])->name('login.user');
 Route::post('/login/user', [AuthController::class, 'userLogin']);
 Route::get('/login/admin', [AuthController::class, 'showAdminLogin'])->name('login.admin');
@@ -57,13 +45,10 @@ Route::get('/register', [AuthController::class, 'showRegister'])->name('register
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-// Rutas públicas de libros
 Route::get('/books', [LibroController::class, 'catalog'])->name('books.catalog');
 Route::get('/books/{libro}', [LibroController::class, 'show'])->name('books.show');
 
-// Rutas protegidas para usuarios autenticados
 Route::middleware(['auth'])->group(function () {
-    // Rutas del usuario
     Route::get('/dashboard', [UserController::class, 'dashboard'])->name('user.dashboard');
     Route::get('/loans', [UserController::class, 'loans'])->name('user.loans');
     Route::get('/reservations', [UserController::class, 'reservations'])->name('user.reservations');
@@ -71,18 +56,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [UserController::class, 'profile'])->name('user.profile');
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('user.update-profile');
     
-    // Acciones de libros
     Route::post('/books/{libro}/favorite', [UserController::class, 'toggleFavorite'])->name('books.favorite');
     Route::post('/books/{libro}/borrow', [PrestamoController::class, 'borrow'])->name('books.borrow');
     Route::post('/books/{libro}/reserve', [ReservaController::class, 'reserve'])->name('books.reserve');
     
-    // Favoritos
     Route::post('/books/{libro}/toggle-favorite', [FavoritoController::class, 'toggle'])->name('books.toggle-favorite');
     Route::get('/favorites', [FavoritoController::class, 'index'])->name('user.favorites');
     Route::delete('/favorites/{favorito}', [FavoritoController::class, 'destroy'])->name('favorites.destroy');
     Route::get('/books/{libro}/check-favorite', [FavoritoController::class, 'check'])->name('books.check-favorite');
     
-    // Compras y Préstamos
     Route::get('/books/{libro}/purchase', [CompraController::class, 'show'])->name('books.purchase');
     Route::post('/books/{libro}/purchase/fisica', [CompraController::class, 'compraFisica'])->name('books.purchase.fisica');
     Route::post('/books/{libro}/purchase/virtual', [CompraController::class, 'compraVirtual'])->name('books.purchase.virtual');
@@ -92,24 +74,19 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/purchase/{compra}/download', [CompraController::class, 'downloadPdf'])->name('books.purchase.download');
     Route::get('/historial', [CompraController::class, 'historial'])->name('user.historial');
     
-    // Préstamos
     Route::post('/loans/{prestamo}/return', [PrestamoController::class, 'return'])->name('loans.return');
     Route::post('/loans/{prestamo}/renew', [PrestamoController::class, 'renew'])->name('loans.renew');
     
-    // Reservas
     Route::delete('/reservations/{reserva}', [ReservaController::class, 'cancel'])->name('reservations.cancel');
     
-    // Notificaciones
     Route::post('/notifications/{id}/mark-read', [NotificacionController::class, 'markAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [NotificacionController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::delete('/notifications/{id}', [NotificacionController::class, 'destroy'])->name('notifications.destroy');
 });
 
-// Rutas protegidas para administradores
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
     
-    // Gestión de libros
     Route::get('/books', [LibroController::class, 'index'])->name('books.index');
     Route::get('/books/create', [LibroController::class, 'create'])->name('books.create');
     Route::post('/books', [LibroController::class, 'store'])->name('books.store');
@@ -117,18 +94,15 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::put('/books/{libro}', [LibroController::class, 'update'])->name('books.update');
     Route::delete('/books/{libro}', [LibroController::class, 'destroy'])->name('books.destroy');
     
-    // Gestión de préstamos
     Route::get('/loans', [PrestamoController::class, 'adminIndex'])->name('loans.index');
     Route::post('/loans', [PrestamoController::class, 'create'])->name('loans.create');
     Route::put('/loans/{prestamo}', [PrestamoController::class, 'update'])->name('loans.update');
     Route::delete('/loans/{prestamo}', [PrestamoController::class, 'destroy'])->name('loans.destroy');
     
-    // Gestión de reservas
     Route::get('/reservations', [ReservaController::class, 'adminIndex'])->name('reservations.index');
     Route::put('/reservations/{reserva}', [ReservaController::class, 'update'])->name('reservations.update');
     Route::delete('/reservations/{reserva}', [ReservaController::class, 'destroy'])->name('reservations.destroy');
     
-    // Gestión de usuarios
     Route::get('/users', [UserController::class, 'adminIndex'])->name('users.index');
     Route::get('/users/{user}', [UserController::class, 'adminShow'])->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'adminUpdate'])->name('users.update');
